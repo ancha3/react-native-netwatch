@@ -94,7 +94,7 @@ export const xlsxWriter = async (text = [], encoding = 'ascii', path = _path, sh
       const deviceInfos = XLSX.utils.json_to_sheet(_temp);
       XLSX.utils.book_append_sheet(wb, deviceInfos, 'device_infos');
     } catch (error) {
-      console.error(error.message);
+      console.error(error instanceof Error ? error.message : String(error));
     }
   }
   // Write the file

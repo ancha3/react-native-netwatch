@@ -51,7 +51,7 @@ export const Details: React.FC<IProps> = props => {
         ),
       });
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -63,7 +63,7 @@ export const Details: React.FC<IProps> = props => {
         message: `${_type}\n${_payload}`,
       });
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error instanceof Error ? error.message : String(error));
     }
   };
 

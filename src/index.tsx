@@ -32,7 +32,7 @@ import { LaunchArguments } from 'react-native-launch-arguments';
 export interface IProps {
   visible?: boolean;
   onPressClose?: () => void;
-  enabled: boolean;
+  enabled?: boolean;
   disableShake?: boolean;
   interceptIOS?: boolean;
   maxRequests?: number;
@@ -53,7 +53,21 @@ const { RNNetwatch } = NativeModules;
 let nativeLoopStarted = false;
 let nativeLoop: NodeJS.Timeout;
 
-export const Netwatch: React.FC<IProps> = (props: IProps) => {
+export const Netwatch: React.FC<IProps> = ({
+  visible: visibleProp = false,
+  onPressClose,
+  enabled = true,
+  disableShake = false,
+  interceptIOS = true,
+  maxRequests = 100,
+  reduxConfig = {},
+  theme = 'dark',
+  showStats = true,
+  useReactotron = false,
+  loadMockPresetFromClipboard,
+  loadMockPresetFromInputParameters,
+  mockPresets,
+}: IProps) => {
   const [reduxActions, setReduxActions] = useState<Array<ReduxAction>>([]);
   const [rnRequests, setRnRequests] = useState<Array<RNRequest>>([]);
   const [nRequests, setnRequests] = useState<Array<NRequest>>([]);
@@ -66,7 +80,7 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
   const [showMockNavigator, setShowMockNavigator] = useState<boolean>(false);
 
   let colorScheme = useColorScheme() || 'light';
-  colorScheme = props.theme ? props.theme : colorScheme;
+  colorScheme = theme ?? colorScheme;
 
   // At this time, if it's not light, that will be dark. No other possibility
   const _theme = colorScheme === 'light' ? themes.light : themes.dark;
@@ -106,55 +120,55 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
           setnRequests([..._result, ...nRequests]);
         }
       } catch (error) {
-        console.error(error.message);
+        console.error(error instanceof Error ? error.message : String(error));
       }
     });
   }, [nRequests]);
 
   React.useEffect(() => {
-    if (props.visible !== undefined) {
-      setVisible(props.visible);
+    if (visibleProp !== undefined) {
+      setVisible(visibleProp);
     }
-  }, [props.visible]);
+  }, [visibleProp]);
 
   const handleShake = useCallback(() => {
-    if (!props.disableShake && props.onPressClose) {
+    if (!disableShake && onPressClose) {
       console.warn(
         'You cannot use button and shake at the same time to avoid inconsistant state. To remove this warning, you must explicitly set props disableShake to true or remove props onPressClose.',
       );
       return;
     }
 
-    if (!props.disableShake && props.enabled) {
+    if (!disableShake && enabled) {
       setVisible(true);
     }
-  }, [props.disableShake, props.enabled, props.onPressClose]);
+  }, [disableShake, enabled, onPressClose]);
 
   React.useEffect(() => {
     let subscription: EmitterSubscription | null = null;
-    if (!props.disableShake && props.enabled) {
+    if (!disableShake && enabled) {
       subscription = DeviceEventEmitter.addListener('NetwatchShakeEvent', handleShake);
     }
     return () => {
       subscription?.remove?.();
     };
-  }, [handleShake, props.disableShake, props.enabled]);
+  }, [handleShake, disableShake, enabled]);
 
   const handleBack = () => {
     if (showDetails) {
       return setShowDetails(false);
     }
-    props.onPressClose ? props.onPressClose() : setVisible(false);
+    onPressClose ? onPressClose() : setVisible(false);
   };
 
   const startNativeLoop = useCallback(() => {
-    if (props.enabled && !nativeLoopStarted) {
+    if (enabled && !nativeLoopStarted) {
       nativeLoopStarted = true;
       nativeLoop = setInterval(() => {
         getNativeRequests();
       }, 1500);
     }
-  }, [getNativeRequests, props.enabled]);
+  }, [getNativeRequests, enabled]);
 
   const stopNativeLoop = () => {
     nativeLoopStarted = false;
@@ -172,57 +186,50 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
   };
 
   React.useEffect(() => {
-    if (!props.enabled || props.useReactotron) {
+    if (!enabled || useReactotron) {
       clearMockResponses();
       clearAll();
       stopNativeLoop();
       _ConnectionLogger.resetCallback();
       setReduxActionsCallback(() => {});
     }
-  }, [props.enabled, props.useReactotron]);
+  }, [enabled, useReactotron]);
 
   React.useEffect(() => {
-    if (props.enabled) {
-      if (props.interceptIOS) {
+    if (enabled) {
+      if (interceptIOS) {
         RNNetwatch.startNetwatch();
       }
       startNativeLoop();
       _RNLogger.enableXHRInterception();
       _RNLogger.setCallback(setRnRequests);
       _ConnectionLogger.setCallback(setConnections);
-      if (props.reduxConfig) {
-        setReduxConfig(props.reduxConfig);
+      if (reduxConfig) {
+        setReduxConfig(reduxConfig);
       }
-      setReduxMaxActions(props.maxRequests);
+      setReduxMaxActions(maxRequests);
       setReduxActionsCallback(setReduxActions);
     }
-  }, [
-    props.enabled,
-    props.interceptIOS,
-    props.maxRequests,
-    props.reduxConfig,
-    startNativeLoop,
-    props.loadMockPresetFromClipboard,
-  ]);
+  }, [enabled, interceptIOS, maxRequests, reduxConfig, startNativeLoop, loadMockPresetFromClipboard]);
 
   React.useEffect(() => {
-    if (props.enabled) {
+    if (enabled) {
       try {
-        if (props.loadMockPresetFromInputParameters) {
+        if (loadMockPresetFromInputParameters) {
           const args = LaunchArguments.value<{ netwatchMocks: MockResponse[] }>();
           if (args && args.netwatchMocks && Array.isArray(args.netwatchMocks)) {
             args.netwatchMocks.forEach(preset => {
               mockRequestWithResponse(preset);
             });
           }
-        } else if (props.loadMockPresetFromClipboard) {
+        } else if (loadMockPresetFromClipboard) {
           Clipboard.getString().then(responses => {
             if (responses) {
               resetMockResponses(responses);
             }
           });
-        } else if (Array.isArray(props.mockPresets)) {
-          props.mockPresets.forEach(preset => {
+        } else if (Array.isArray(mockPresets)) {
+          mockPresets.forEach(preset => {
             mockRequestWithResponse(preset);
           });
         }
@@ -231,7 +238,7 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
       }
       setupMocks();
     }
-  }, [props.enabled, props.loadMockPresetFromClipboard, props.loadMockPresetFromInputParameters, props.mockPresets]);
+  }, [enabled, loadMockPresetFromClipboard, loadMockPresetFromInputParameters, mockPresets]);
 
   React.useEffect(() => {
     if (!visible) {
@@ -241,7 +248,7 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
     startNativeLoop();
   }, [startNativeLoop, visible]);
 
-  if (!props.enabled) {
+  if (!enabled) {
     return null;
   }
 
@@ -252,9 +259,9 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
           <View style={{ flex: 1 }}>
             <View style={{ height: showDetails ? 0 : '100%' }}>
               <Main
-                maxRequests={props.maxRequests}
+                maxRequests={maxRequests}
                 testId="mainScreen"
-                onPressClose={props.onPressClose || (() => setVisible(false))}
+                onPressClose={onPressClose || (() => setVisible(false))}
                 onPressDetail={setShowDetails}
                 onPress={setItem}
                 reduxActions={reduxActions}
@@ -262,7 +269,7 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
                 nRequests={nRequests}
                 connections={connections}
                 clearAll={clearAll}
-                showStats={props.showStats}
+                showStats={showStats}
                 onShowMocksList={() => {
                   setMockResponse(undefined);
                   setShowMockNavigator(true);
@@ -298,17 +305,4 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
       </PaperProvider>
     </ThemeContext.Provider>
   );
-};
-
-Netwatch.defaultProps = {
-  visible: false,
-  onPressClose: undefined,
-  enabled: true,
-  interceptIOS: true,
-  disableShake: false,
-  maxRequests: 100,
-  reduxConfig: {},
-  theme: 'dark',
-  showStats: true,
-  useReactotron: false,
 };
