@@ -32,7 +32,7 @@ import { LaunchArguments } from 'react-native-launch-arguments';
 export interface IProps {
   visible?: boolean;
   onPressClose?: () => void;
-  enabled: boolean;
+  enabled?: boolean;
   disableShake?: boolean;
   interceptIOS?: boolean;
   maxRequests?: number;
@@ -106,7 +106,7 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
           setnRequests([..._result, ...nRequests]);
         }
       } catch (error) {
-        console.error(error.message);
+        console.error(error instanceof Error ? error.message : String(error));
       }
     });
   }, [nRequests]);
@@ -298,17 +298,4 @@ export const Netwatch: React.FC<IProps> = (props: IProps) => {
       </PaperProvider>
     </ThemeContext.Provider>
   );
-};
-
-Netwatch.defaultProps = {
-  visible: false,
-  onPressClose: undefined,
-  enabled: true,
-  interceptIOS: true,
-  disableShake: false,
-  maxRequests: 100,
-  reduxConfig: {},
-  theme: 'dark',
-  showStats: true,
-  useReactotron: false,
 };

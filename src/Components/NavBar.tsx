@@ -1,5 +1,5 @@
 import { Appbar } from 'react-native-paper';
-import { Platform, StyleSheet, TouchableOpacity } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import * as React from 'react';
 import { ReactNode, useContext } from 'react';
