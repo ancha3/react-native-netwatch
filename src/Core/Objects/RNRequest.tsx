@@ -9,14 +9,18 @@ const fromEntries = (arr: any[]) =>
     return acc;
   }, {});
 
-export const stringifyData = (data: any) => {
+export const stringifyData = (data: any): string => {
   try {
     if (data?._parts?.length) {
-      return JSON.stringify(fromEntries(data?._parts), null, 2);
+      return JSON.stringify(fromEntries(data._parts), null, 2);
     }
+    if (data && typeof data === 'object') {
+      return JSON.stringify(data, null, 2);
+    }
+    // data is a pre-serialized JSON string — pretty-print it
     return JSON.stringify(JSON.parse(data), null, 2);
-  } catch (e) {
-    return `${data}`;
+  } catch {
+    return String(data);
   }
 };
 
